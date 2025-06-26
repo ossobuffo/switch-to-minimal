@@ -1,4 +1,4 @@
-# Drush switch-to-minimal
+# Drush switch_to_minimal
 
 This command file adds a pre-command hook to the `deploy` command, which
 ensures that the install profile is set to `minimal`. If it is not
@@ -6,6 +6,11 @@ ensures that the install profile is set to `minimal`. If it is not
 `drush deploy` is invoked. It is perfectly harmless to keep this code
 around after you switch profiles; it will simply bail with the message
 “Current profile is already minimal.”
+
+It also provides the command `switch-to-minimal` which will perform the
+profile switch without invoking `drush deploy`.
+
+The command file will be installed in `${PROJECT_ROOT}/drush/Commands/contrib/switch_to_minimal`.
 
 ## Why would I need this?
 
@@ -20,9 +25,9 @@ Obviously you should remove this from your project if you want to switch
 to another non-minimal profile.
 
 If the profile you are moving away from includes contrib modules or libraries
-in its composer.json, you should make sure that they are now pulled in by
-your current main composer.json.
+in its `composer.json`, you should make sure that they are now pulled in by
+your current main `composer.json`.
 
-This could quite possibly work with older versions of Drush and Drupal than
-advertised in the composer.json file. I have not tested, and do not
+This could quite possibly work with older versions of Drush than
+advertised in the `composer.json` file. I have not tested, and do not
 consider it worth my while to do so.

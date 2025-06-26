@@ -1,16 +1,25 @@
 {
-    "name": "ossobuffo/switch-to-minimal",
-    "description": "Drush hook to switch Drupal install profile to 'minimal'.",
+    "name": "ossobuffo/switch_to_minimal",
+    "description": "Drush hook to switch Drupal install profile to ‘minimal’.",
     "type": "drupal-drush",
     "license": "GPL-2.0-or-later",
+    "homepage": "https://github.com/ossobuffo/switch-to-minimal",
+    "authors": [
+        {
+            "name": "Daniel Johnson",
+            "email": "il.basso.buffo@gmail.com"
+        }
+    ],
     "require": {
-        "drupal/core": "^10.3 || ^11",
-        "drush/drush": ">=13.0.0"
+        "php": ">=8.3.0"
+    },
+    "conflict": {
+        "drush/drush": "<13.0"
     },
     "extra": {
         "installer-name": "switch_to_minimal",
         "installer-paths": {
-            "drush/Commands/contrib/{$name}": [ "ossobuffo/switch-to-minimal" ]
+            "drush/Commands/contrib/{$name}": [ "ossobuffo/switch_to_minimal" ]
         }
     }
 }
