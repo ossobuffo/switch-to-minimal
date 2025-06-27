@@ -1,25 +1,20 @@
 # Drush switch_to_minimal
 
-This command file adds a pre-command hook to the `deploy` command, which
-ensures that the install profile is set to whatever is defined in
+This command file adds a pre-command hook to the `config:import` command,
+which ensures that the install profile is set to whatever is defined in
 `core.extension.yml`. If the current profile is not the same as that
 profile, the install profile is changed. This hook will run **EVERY TIME**
-`drush deploy` is invoked. It is perfectly harmless to keep this code
-around after you switch profiles; it will simply bail with the message
-“Current profile is already \[profile-name].”
+`drush config:import` is invoked, including when it is run as a subprocess
+of `drush deploy`. It is perfectly harmless to keep this code
+around after you switch profiles; it will simply bail, with the message
+“Current profile is already \[profile-name]” if you run it with the
+`--verbose` option.
 
 If `core.extension.yml` cannot be found, this command will fall back
 to the `minimal` profile.
 
 This package also provides the command `switch-profile` which will
-perform the profile switch without invoking `drush deploy`.
-
-As of Drush 13.6.0.0, there is a patch that must be applied to drush
-itself to make the pre-command hook be detected by `drush deploy`.
-A copy of this patch is included; you should add it your project’s
-patchset (either `composer.patches.json` or the `extra.patches` key
-in `composer.json). For more information, see
-[Drush issue #6304](https://github.com/drush-ops/drush/issues/6304).
+perform the profile switch without invoking `drush config:import`.
 
 The command file will be installed in `${PROJECT_ROOT}/drush/Commands/contrib/switch_to_minimal`.
 
