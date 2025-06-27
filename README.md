@@ -10,6 +10,13 @@ around after you switch profiles; it will simply bail with the message
 It also provides the command `switch-to-minimal` which will perform the
 profile switch without invoking `drush deploy`.
 
+As of Drush 13.6.0.0, there is a patch that must be applied to drush
+itself to make the pre-command hook be detected by `drush deploy`.
+A copy of this patch is included; you should add it your project’s
+patchset (either `composer.patches.json` or the `extra.patches` key
+in `composer.json). For more information, see
+[Drush issue #6304](https://github.com/drush-ops/drush/issues/6304).
+
 The command file will be installed in `${PROJECT_ROOT}/drush/Commands/contrib/switch_to_minimal`.
 
 ## Why would I need this?

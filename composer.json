@@ -11,10 +11,8 @@
         }
     ],
     "require": {
-        "php": ">=8.3.0"
-    },
-    "conflict": {
-        "drush/drush": "<13.0"
+        "php": ">=8.3.0",
+        "drush/drush": ">=13.0.0"
     },
     "extra": {
         "installer-name": "switch_to_minimal",
