@@ -6,24 +6,30 @@ use Consolidation\AnnotatedCommand\CommandData;
 use Consolidation\AnnotatedCommand\Hooks\HookManager;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
+use Drupal\Core\Site\Settings;
 use Drupal\Core\State\StateInterface;
 use Drush\Attributes as CLI;
 use Drush\Boot\DrupalBootLevels;
 use Drush\Commands\DrushCommands;
 use Psr\Container\ContainerInterface;
+use Symfony\Component\Yaml\Exception\ParseException;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Adds a pre-command to switch profiles if necessary.
  */
+#[CLI\Bootstrap(level: DrupalBootLevels::FULL)]
 class StmCommands extends DrushCommands {
 
-  public const string TARGET_PROFILE = 'minimal';
+  public const string DEFAULT_TARGET_PROFILE = 'minimal';
 
   /**
    * Builds this command.
    *
    * @param string $oldProfile
    *   The name of the existing install profile.
+   * @param string $targetProfile
+   *   The name of the install profile to be set.
    * @param \Drupal\Core\State\StateInterface $state
    *   The state service.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
@@ -33,6 +39,7 @@ class StmCommands extends DrushCommands {
    */
   public function __construct(
     protected string $oldProfile,
+    protected string $targetProfile,
     protected StateInterface $state,
     protected ConfigFactoryInterface $configFactory,
     protected KeyValueFactoryInterface $keyValueFactory,
@@ -63,31 +70,62 @@ class StmCommands extends DrushCommands {
     // not have a getParameter() method, so we have to dig deeper to get the
     // installation profile.
     $old_profile = strval($config_factory->get('core.extension')->get('profile'));
+    // Try to find the name of the new (target) profile.
+    $config_dir = realpath(DRUPAL_ROOT . '/' . (Settings::get('config_sync_directory') ?? '../config/sync'));
+    $target_profile = self::DEFAULT_TARGET_PROFILE;
+    if (!is_dir($config_dir)) {
+      if (is_dir(dirname($config_dir))) {
+        $files = glob(dirname($config_dir) . '/*/core.extension.yml');
+        if (!empty($files)) {
+          $config_dir = dirname(reset($files));
+        }
+      }
+    }
+    if (file_exists("$config_dir/core.extension.yml")) {
+      try {
+        $extension_data = Yaml::parseFile($config_dir . '/core.extension.yml');
+        if (is_array($extension_data) && is_string($extension_data['profile'] ?? NULL)) {
+          $target_profile = $extension_data['profile'];
+        }
+      }
+      catch (ParseException) {
+        // Do nothing.
+      }
+    }
     return new static(
       $old_profile,
+      $target_profile,
       $state,
       $config_factory,
       $key_value_factory,
     );
   }
 
-  #[CLI\Command(name: 'switch-to-minimal')]
-  #[CLI\Help(description: 'Switch to the ‘minimal’ Drupal install profile.')]
+  #[CLI\Command(name: 'switch-profile')]
   #[CLI\Bootstrap(level: DrupalBootLevels::FULL)]
+  #[CLI\Help(description: 'Switches to the new profile as configured in core.extension.yml, and removes the old one.')]
+  #[CLI\Usage(name: 'drush switch-profile', description: 'Switches to a new profile, and removes the old one.')]
   public function switch(): int {
-    return $this->doSwitchToMinimalProfile();
+    if ($this->oldProfile === $this->targetProfile) {
+      $this->io()->info(dt('Current profile is already @profile', ['@profile' => $this->targetProfile]));
+      return DrushCommands::EXIT_SUCCESS;
+    }
+    if ($this->io()->confirm(dt('Switch profile from @old to @new?', ['@old' => $this->oldProfile, '@new' => $this->targetProfile]))) {
+      return $this->doSwitchToProfile();
+    }
+    return DrushCommands::EXIT_FAILURE_WITH_CLARITY;
   }
 
   /**
-   * Pre-command hook to ensure we are running the minimal profile.
+   * Pre-command hook to ensure we are running the correct profile.
    *
    * This hook is invoked immediately before `drush deploy`.
    */
   #[CLI\Hook(HookManager::PRE_COMMAND_HOOK, target: 'deploy')]
   #[CLI\Bootstrap(level: DrupalBootLevels::FULL)]
-  public function doSwitchToMinimalProfile(?CommandData $commandData = NULL): int {
-    if ($this->oldProfile === self::TARGET_PROFILE) {
-      $this->io()->info(dt('Current profile is already @profile', ['@profile' => self::TARGET_PROFILE]));
+  public function doSwitchToProfile(?CommandData $commandData = NULL): int {
+    if ($this->oldProfile === $this->targetProfile) {
+      $this->io()->info(dt('Current profile is already @profile', ['@profile' => $this->targetProfile]));
       return DrushCommands::EXIT_SUCCESS;
     }
     $schema_store = $this->keyValueFactory->get('system.schema');
@@ -96,7 +134,7 @@ class StmCommands extends DrushCommands {
 
     // Set the profile in configuration.
     $extension_config = $this->configFactory->getEditable('core.extension');
-    $extension_config->set('profile', self::TARGET_PROFILE)->save();
+    $extension_config->set('profile', $this->targetProfile)->save();
 
     drupal_flush_all_caches();
 
@@ -106,17 +144,17 @@ class StmCommands extends DrushCommands {
     // extension system.
     $extension_config
       ->clear('module.' . $this->oldProfile)
-      ->set('module.' . self::TARGET_PROFILE, 1000)
+      ->set('module.' . $this->targetProfile, 1000)
       ->save();
 
     // Remove the schema value for the old installation profile, and set the
     // schema for the new one.
     $schema_store->delete($this->oldProfile);
-    $schema_store->set(self::TARGET_PROFILE, 9000);
+    $schema_store->set($this->targetProfile, 9000);
 
     // Clear caches again.
     drupal_flush_all_caches();
-    $this->io()->info(dt('Changed profile from @old to @new', ['@old' => $this->oldProfile, '@new' => self::TARGET_PROFILE]));
+    $this->io()->info(dt('Changed profile from @old to @new', ['@old' => $this->oldProfile, '@new' => $this->targetProfile]));
 
     return DrushCommands::EXIT_SUCCESS;
   }

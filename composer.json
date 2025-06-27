@@ -1,6 +1,6 @@
 {
     "name": "ossobuffo/switch_to_minimal",
-    "description": "Drush hook to switch Drupal install profile to ‘minimal’.",
+    "description": "Drush hook to switch Drupal install profile to whatever profile is configured in core.extension.yml.",
     "type": "drupal-drush",
     "license": "GPL-2.0-or-later",
     "homepage": "https://github.com/ossobuffo/switch-to-minimal",
@@ -12,6 +12,7 @@
     ],
     "require": {
         "php": ">=8.3.0",
+        "drupal/core": "^10.2 || ^11",
         "drush/drush": ">=13.0.0"
     },
     "extra": {
